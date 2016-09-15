@@ -56,6 +56,11 @@ class SolrQuery extends AbstractQuery
         $this->mappedFields = $mappedFields;
     }
 
+    public function addMappedFields($mappedFields)
+    {
+        $this->mappedFields = array_merge($this->mappedFields, $mappedFields);
+    }
+
     /**
      * @param bool $strict
      */

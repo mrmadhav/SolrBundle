@@ -25,9 +25,9 @@ abstract class AbstractQuery extends Query
     protected $index = null;
 
     /**
-     * @var object
+     * @var array
      */
-    private $entity = null;
+    private $entity = array();
 
     /**
      * @var MetaInformationInterface
@@ -49,12 +49,12 @@ abstract class AbstractQuery extends Query
     {
         $this->metaInformation = $metaInformation;
 
-        $this->entity = $metaInformation->getEntity();
+        $this->addEntity($metaInformation->getEntity());
         $this->index = $metaInformation->getIndex();
     }
 
     /**
-     * @return object
+     * @return array
      */
     public function getEntity()
     {
@@ -62,11 +62,21 @@ abstract class AbstractQuery extends Query
     }
 
     /**
-     * @param object $entity
+     * @param array $entity
      */
     public function setEntity($entity)
     {
         $this->entity = $entity;
+    }
+
+    /**
+     * @param object $entity
+     */
+    public function addEntity($entity)
+    {
+        if(empty($this->entity) || !in_array($entity, $this->entity)) {
+            $this->entity[] = $entity;
+        }
     }
 
     /**
