@@ -110,7 +110,7 @@ class Solr implements SolrInterface
 
         $query = new SolrQuery();
         $query->setSolr($this);
-        $query->setEntity($entity);
+        $query->addEntity($entity);
         $query->setIndex($metaInformation->getIndex());
         $query->setMetaInformation($metaInformation);
         $query->setMappedFields($metaInformation->getFieldMapping());
@@ -128,6 +128,40 @@ class Solr implements SolrInterface
         $metaInformation = $this->metaInformationFactory->loadInformation($entity);
 
         return new QueryBuilder($this, $metaInformation);
+    }
+
+    /**
+     * This will work only on one core at a time
+     *
+     * @param $entities
+     * @param string $endpoint
+     * @return SolrQuery
+     */
+    public function createMultipleEntityQuery($entities, $endpoint = '')
+    {
+        $query = new SolrQuery();
+        $query->setSolr($this);
+        $query->setIndex($endpoint);
+        if(is_array($entities)) {
+            foreach ($entities as $entityName) {
+                $query = $this->populateQuery($query, $entityName);
+            }
+        }
+        else {
+            $query = $this->populateQuery($query, $entities);
+        }
+        return $query;
+    }
+
+    private function populateQuery($query, $entity) {
+        $metaInformation = $this->metaInformationFactory->loadInformation($entity);
+        $class = $metaInformation->getClassName();
+        $entity = new $class;
+
+        $query->addEntity($entity);
+        $query->addMappedFields($metaInformation->getFieldMapping());
+
+        return $query;
     }
 
     /**
@@ -268,7 +302,7 @@ class Solr implements SolrInterface
      */
     public function query(AbstractQuery $query)
     {
-        $entity = $query->getEntity();
+        $entityList = $query->getEntity();
         $runQueryInIndex = $query->getIndex();
         $selectQuery = $this->getSelectQuery($query);
 
@@ -279,9 +313,14 @@ class Solr implements SolrInterface
 
             $entities = array();
             foreach ($response as $document) {
-                $entities[] = $this->entityMapper->toEntity($document, $entity);
+                foreach ($entityList as $entity) {
+                    $metaInformation = $this->metaInformationFactory->loadInformation($entity);
+                    $parts = explode("_", $document->id);
+                    if($parts[0] == $metaInformation->getDocumentName()) {
+                        $entities[] = $this->entityMapper->toEntity($document, $entity);
+                    }
+                }
             }
-
             return $entities;
         } catch (\Exception $e) {
             $errorEvent = new ErrorEvent(null, null, 'query solr');
